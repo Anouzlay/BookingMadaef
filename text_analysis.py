@@ -13,24 +13,30 @@ import plotly.express as px
 import plotly.graph_objects as go
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
-
-import os
-import nltk
-import streamlit as st
-from nltk.tokenize import word_tokenize
 import time
+import os
 
-# Global flag to track downloaded resources
-if 'nltk_resources_downloaded' not in st.session_state:
-    st.session_state.nltk_resources_downloaded = False
+
+# Initialize session state variables at the very beginning of your app
+def init_session_state():
+    """Initialize all session state variables used in the app."""
+    if 'nltk_resources_downloaded' not in st.session_state:
+        st.session_state['nltk_resources_downloaded'] = False
+
+# Call this function at the very beginning of your main function
+init_session_state()
 
 def setup_nltk_resources():
     """
     Setup NLTK resources with proper waiting and verification.
     This function must be called before any text processing.
     """
+    # Initialize session state if not already done
+    if 'nltk_resources_downloaded' not in st.session_state:
+        st.session_state['nltk_resources_downloaded'] = False
+    
     # Skip if already downloaded in this session
-    if st.session_state.nltk_resources_downloaded:
+    if st.session_state['nltk_resources_downloaded']:
         return True
     
     # Show a loading message in the sidebar instead of the main area
@@ -67,14 +73,13 @@ def setup_nltk_resources():
         time.sleep(3)  # Additional waiting time
         
         # Mark as downloaded
-        st.session_state.nltk_resources_downloaded = True
+        st.session_state['nltk_resources_downloaded'] = success
         
         # Update status message
         if success:
             status_placeholder.success("Ressources linguistiques téléchargées avec succès!")
         
         return success
-
 # Modify your preprocess_text function to include fallback mechanisms
 def preprocess_text(text, lang='french'):
     """
