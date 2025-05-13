@@ -540,7 +540,7 @@ def create_sentiment_dataframes(reviews):
     negative_df = pd.DataFrame(negative_comments)
 
 
-    download_nltk_resources()
+    
     analyze_sentiment_and_extract_kpis(positive_df, negative_df)
     
 def main():
