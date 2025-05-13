@@ -15,10 +15,6 @@ import re
 import streamlit as st
 import traceback
 
-try:
-    download_nltk_resources()
-except LookupError:
-    st.write("impossible")
 def setup_driver():
     """Set up and return a Firefox webdriver with appropriate options."""
     st.info("Attempting to set up Firefox driver...")
@@ -537,6 +533,9 @@ def create_sentiment_dataframes(reviews):
     
     positive_df = pd.DataFrame(positive_comments)
     negative_df = pd.DataFrame(negative_comments)
+
+
+    download_nltk_resources()
     analyze_sentiment_and_extract_kpis(positive_df, negative_df)
     
 def main():
