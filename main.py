@@ -15,6 +15,11 @@ import re
 import streamlit as st
 import traceback
 
+st.info("Téléchargement des ressources linguistiques nécessaires...")
+nltk.download('punkt')
+nltk.download('stopwords')
+nltk.download('wordnet')
+
 def setup_driver():
     """Set up and return a Firefox webdriver with appropriate options."""
     st.info("Attempting to set up Firefox driver...")
