@@ -1,4 +1,4 @@
-from text_analysis import analyze_sentiment_and_extract_kpis
+from text_analysis import analyze_sentiment_and_extract_kpis , download_nltk_resources
 import time
 import pandas as pd
 import os
