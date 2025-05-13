@@ -15,8 +15,6 @@ import re
 import nltk
 import streamlit as st
 import traceback
-
-st.info("Téléchargement des ressources linguistiques nécessaires...")
 nltk.download('punkt')
 nltk.download('stopwords')
 nltk.download('wordnet')
