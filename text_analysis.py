@@ -207,7 +207,7 @@ def extract_topics(texts, num_topics=5, num_words=10):
 
 # Analyse des sentiments et extraction de KPIs
 def analyze_sentiment_and_extract_kpis(positive_df, negative_df):
-    download_nltk_resources()
+    setup_nltk_resources()
     # Vérifier si les dataframes sont vides
     if positive_df.empty and negative_df.empty:
         st.error("Aucune donnée disponible pour l'analyse des sentiments.")
