@@ -14,20 +14,72 @@ import plotly.graph_objects as go
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 
-# Ensure NLTK resources are downloaded
-def download_nltk_resources():
-    try:
-        nltk.data.find('tokenizers/punkt')
-        nltk.data.find('corpora/stopwords')
-        nltk.data.find('corpora/wordnet')
-    except LookupError:
-        st.info("Téléchargement des ressources linguistiques nécessaires...")
-        nltk.download('punkt')
-        nltk.download('stopwords')
-        nltk.download('wordnet')
+import os
+import nltk
+import streamlit as st
+from nltk.tokenize import word_tokenize
+import time
 
-# Prétraitement du texte
+# Global flag to track downloaded resources
+if 'nltk_resources_downloaded' not in st.session_state:
+    st.session_state.nltk_resources_downloaded = False
+
+def setup_nltk_resources():
+    """
+    Setup NLTK resources with proper waiting and verification.
+    This function must be called before any text processing.
+    """
+    # Skip if already downloaded in this session
+    if st.session_state.nltk_resources_downloaded:
+        return True
+    
+    # Show a loading message in the sidebar instead of the main area
+    with st.sidebar:
+        status_placeholder = st.empty()
+        status_placeholder.info("Téléchargement des ressources linguistiques nécessaires...")
+        
+        # Create NLTK data directory
+        nltk_data_dir = os.path.join(os.getcwd(), "nltk_data")
+        os.makedirs(nltk_data_dir, exist_ok=True)
+        
+        # Add to NLTK's search path
+        nltk.data.path.insert(0, nltk_data_dir)
+        
+        # Define resources to download
+        resources = [
+            'punkt',
+            'stopwords',
+            'wordnet',
+        ]
+        
+        # Download resources
+        success = True
+        for resource in resources:
+            try:
+                nltk.download(resource, download_dir=nltk_data_dir, quiet=True)
+                # Wait for download to complete
+                time.sleep(2)
+            except Exception as e:
+                status_placeholder.error(f"Error downloading {resource}: {str(e)}")
+                success = False
+        
+        # Wait for downloads to complete
+        time.sleep(3)  # Additional waiting time
+        
+        # Mark as downloaded
+        st.session_state.nltk_resources_downloaded = True
+        
+        # Update status message
+        if success:
+            status_placeholder.success("Ressources linguistiques téléchargées avec succès!")
+        
+        return success
+
+# Modify your preprocess_text function to include fallback mechanisms
 def preprocess_text(text, lang='french'):
+    """
+    Preprocess text with robust fallback mechanisms.
+    """
     if not isinstance(text, str) or not text.strip():
         return []
     
@@ -35,23 +87,52 @@ def preprocess_text(text, lang='french'):
     text = text.lower()
     
     # Suppression des caractères spéciaux et chiffres
+    import re
     text = re.sub(r'[^\w\s]', ' ', text)
     text = re.sub(r'\d+', ' ', text)
     
-    # Tokenization
-    tokens = word_tokenize(text, language=lang)
+    # Tokenization with fallback
+    try:
+        # First attempt: standard tokenization
+        tokens = word_tokenize(text, language=lang)
+    except LookupError:
+        try:
+            # Second attempt: try without language specification
+            tokens = word_tokenize(text)
+        except LookupError:
+            # Final fallback: simple space splitting
+            tokens = text.split()
     
-    # Suppression des stop words
-    stop_words = set(stopwords.words(lang))
-    stop_words.update(['hotel', 'chambre', 'paris', 'jour', 'nuit', 'bien', 'très', 'plus', 'moins', 'tout', 'petit', 'grande'])  # Mots spécifiques au domaine hôtelier
+    # Stopwords with fallback
+    try:
+        from nltk.corpus import stopwords
+        stop_words = set(stopwords.words(lang))
+    except (LookupError, OSError):
+        # Fallback French stopwords
+        stop_words = {
+            'le', 'la', 'les', 'un', 'une', 'des', 'et', 'est', 'il', 'elle', 
+            'je', 'tu', 'nous', 'vous', 'ils', 'elles', 'à', 'de', 'ce', 'cette',
+            'ces', 'mon', 'ton', 'son', 'ma', 'ta', 'sa', 'mes', 'tes', 'ses',
+            'pour', 'par', 'en', 'sur', 'sous', 'dans', 'avec', 'sans'
+        }
+    
+    # Add domain-specific stopwords
+    stop_words.update(['hotel', 'chambre', 'paris', 'jour', 'nuit', 'bien', 
+                      'très', 'plus', 'moins', 'tout', 'petit', 'grande'])
+    
+    # Filter out stopwords and short words
     tokens = [token for token in tokens if token not in stop_words and len(token) > 2]
     
-    # Lemmatisation
-    lemmatizer = WordNetLemmatizer()
-    tokens = [lemmatizer.lemmatize(token) for token in tokens]
+    # Lemmatization with fallback
+    try:
+        from nltk.stem import WordNetLemmatizer
+        lemmatizer = WordNetLemmatizer()
+        tokens = [lemmatizer.lemmatize(token) for token in tokens]
+    except (LookupError, OSError):
+        # No lemmatization, just return the tokens
+        pass
     
     return tokens
-
 # Extraction des mots les plus fréquents
 def get_frequent_words(texts, top_n=20):
     all_tokens = []
