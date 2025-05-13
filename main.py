@@ -12,13 +12,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from webdriver_manager.chrome import ChromeDriverManager
 import re
-import nltk
 import streamlit as st
 import traceback
-nltk.download('punkt')
-nltk.download('stopwords')
-nltk.download('wordnet')
-
 def setup_driver():
     """Set up and return a Firefox webdriver with appropriate options."""
     st.info("Attempting to set up Firefox driver...")
@@ -548,7 +543,7 @@ def main():
         
         layout="wide"
     )
-    
+    download_nltk_resources()
     st.title("Booking.com Reviews ")
     st.write("Enter a Booking.com hotel URL to extract positive and negative reviews.")
 
