@@ -16,27 +16,34 @@ import traceback
 
 def setup_driver():
     """Set up and return a Chrome webdriver with appropriate options."""
+    st.info("Attempting to set up Chrome driver...")
     chrome_options = Options()
+    chrome_options.add_argument("--headless=new") # Essential for Streamlit Cloud
+    chrome_options.add_argument("--no-sandbox") # Essential for running as root/non-privileged user in containers
+    chrome_options.add_argument("--disable-dev-shm-usage") # Essential for resource-constrained environments
     chrome_options.add_argument("--window-size=1920,1080")
     chrome_options.add_argument("--disable-notifications")
     chrome_options.add_argument("--disable-popup-blocking")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--headless=new") 
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    
+
     # Add user agent to appear more like a regular browser
     chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-    
-    # Disable automation flags
+
+    # Disable automation flags (these can sometimes cause issues or detection)
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
-    
+
     # Set up driver
     try:
+        st.info("Installing/checking Chrome driver with webdriver_manager...")
+        # This line will download the correct ChromeDriver for the Chrome version
+        # installed by packages.txt
         service = Service(ChromeDriverManager().install())
+        st.info("Service created with ChromeDriverManager.")
+
         driver = webdriver.Chrome(service=service, options=chrome_options)
-        
-        # Execute CDP commands to prevent detection
+        st.info("Chrome driver initialized.")
+
+        # Execute CDP commands to prevent detection (optional, but good for scraping)
         driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
             "source": """
                 Object.defineProperty(navigator, 'webdriver', {
@@ -44,12 +51,17 @@ def setup_driver():
                 })
             """
         })
-        
+        st.info("CDP command executed to hide webdriver.")
+
         return driver
     except Exception as e:
+        # Provide more specific error logging for Streamlit
         st.error(f"Error setting up Chrome driver: {str(e)}")
-        st.info("Try installing Chrome browser if not already installed, or update to the latest version")
-        raise e
+        st.error(f"Full traceback: {traceback.format_exc()}") # This will give you the full error in Streamlit logs
+        st.info("Common issues: Check 'packages.txt' includes 'google-chrome-stable'. Ensure Chrome and ChromeDriver versions are compatible if not using webdriver_manager.")
+        # Do not raise e here if you want Streamlit to display the error and not crash the setup.
+        # If you want the app to stop, then `raise e` is fine. For debugging, it's better to see it in Streamlit.
+        return None # Or raise the exception if you prefer the app to halt completely
 
 def extract_reviews(url, debug_mode=False):
     driver = None
