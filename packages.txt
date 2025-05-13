@@ -1,0 +1,12 @@
+# System dependencies for Selenium and Headless Chrome
+google-chrome-stable
+# The following might also be needed depending on the exact setup & Chrome version,
+# but start with chrome first. Often, chrome brings its essential deps.
+# If you still see errors about missing .so files, uncomment and add more:
+# libx11-xcb1
+# libnss3
+# libxrandr2
+# libgbm1
+# libasound2
+# libatk-bridge2.0-0
+# libgtk-3-0
