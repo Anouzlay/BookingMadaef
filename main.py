@@ -1,4 +1,4 @@
-from text_analysis import analyze_sentiment_and_extract_kpis , download_nltk_resources
+from text_analysis import analyze_sentiment_and_extract_kpis 
 import time
 import pandas as pd
 import os
@@ -543,7 +543,7 @@ def main():
         
         layout="wide"
     )
-    download_nltk_resources()
+
     st.title("Booking.com Reviews ")
     st.write("Enter a Booking.com hotel URL to extract positive and negative reviews.")
 
