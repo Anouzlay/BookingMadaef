@@ -1,11 +1,10 @@
-from text_analysis import analyze_sentiment_and_extract_kpis 
+from text_analysis import analyze_sentiment_and_extract_kpis
 import time
 import pandas as pd
 import os
 from selenium import webdriver
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.firefox.options import Options as FirefoxOptions
-from webdriver_manager.firefox import GeckoDriverManager # Use GeckoDriverManager
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -14,31 +13,42 @@ from webdriver_manager.chrome import ChromeDriverManager
 import re
 import streamlit as st
 import traceback
+
 def setup_driver():
-    """Set up and return a Firefox webdriver with appropriate options."""
-    st.info("Attempting to set up Firefox driver...")
-
-    firefox_options = FirefoxOptions()
-    firefox_options.add_argument("--headless")
-    firefox_options.add_argument("--no-sandbox")
-    firefox_options.add_argument("--disable-dev-shm-usage")
-    firefox_options.add_argument("--window-size=1920,1080")
-    firefox_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0")
-
+    """Set up and return a Chrome webdriver with appropriate options."""
+    chrome_options = Options()
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument("--disable-notifications")
+    chrome_options.add_argument("--disable-popup-blocking")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--headless=new") 
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    
+    # Add user agent to appear more like a regular browser
+    chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    
+    # Disable automation flags
+    chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    chrome_options.add_experimental_option('useAutomationExtension', False)
+    
+    # Set up driver
     try:
-        st.info("Installing/checking Gecko driver with webdriver_manager...")
-        service = Service(GeckoDriverManager().install())
-        st.info("Service created with GeckoDriverManager.")
-
-        driver = webdriver.Firefox(service=service, options=firefox_options)
-        st.info("Firefox driver initialized.")
-
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+        
+        # Execute CDP commands to prevent detection
+        driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": """
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined
+                })
+            """
+        })
+        
         return driver
     except Exception as e:
-        st.error(f"Error setting up Firefox driver: {str(e)}")
-        st.error(f"Full traceback: {traceback.format_exc()}")
-        st.info("Ensure 'packages.txt' includes 'firefox-esr' and 'geckodriver'.")
-        return None
+        st.error(f"Error setting up Chrome driver: {str(e)}")
+        raise e
 
 def extract_reviews(url, debug_mode=False):
     driver = None
@@ -58,10 +68,9 @@ def extract_reviews(url, debug_mode=False):
                     "//button[contains(@id, 'accept') or contains(text(), 'Accept') or contains(text(), 'Accepter')]"))
             )
             cookie_button.click()
-            st.info("Accepted cookies")
             time.sleep(2)
         except TimeoutException:
-            st.info("No cookie banner found or already accepted")
+            print("test")
         
         # Check if we need to navigate to the reviews section
         if "reviews" not in driver.current_url.lower():
@@ -73,10 +82,6 @@ def extract_reviews(url, debug_mode=False):
             st.info(f"Navigating directly to reviews page: {reviews_url}")
             time.sleep(5)  # Wait for page to load
         
-        # Take a screenshot for debugging
-        if debug_mode:
-            driver.save_screenshot("debug_screenshot.png")
-            st.info("Saved debug screenshot")
         
         # First attempt: Try to find review cards using data-testid attribute (most reliable)
         review_cards = driver.find_elements(By.CSS_SELECTOR, 'div[data-testid="review-card"], div[data-testid="review-item"]')
@@ -85,13 +90,9 @@ def extract_reviews(url, debug_mode=False):
             st.info("No review cards found with data-testid, trying alternative selectors...")
             # Second attempt: Try alternative selectors commonly found on Booking.com
             review_cards = driver.find_elements(By.CSS_SELECTOR, '.c-review-block, .review_list_new_item_block, .review_item')
-        
-        if debug_mode:
-            st.info(f"Found {len(review_cards)} review cards")
-        
+   
+
         if not review_cards:
-            # Third attempt: Try to scroll and reveal more reviews
-            st.info("No review cards found, trying to scroll and reveal more content...")
             for i in range(3):  # Scroll a few times
                 driver.execute_script("window.scrollBy(0, 800);")
                 time.sleep(2)
@@ -313,7 +314,6 @@ def extract_reviews(url, debug_mode=False):
                 review_cards = driver.find_elements(By.CSS_SELECTOR, 'div[data-testid="review-card"]')
                 
                 if review_cards:
-                    st.info(f"Found {len(review_cards)} reviews with direct CSS selector")
                     
                     for card in review_cards:
                         review_obj = {
@@ -532,9 +532,6 @@ def create_sentiment_dataframes(reviews):
     
     positive_df = pd.DataFrame(positive_comments)
     negative_df = pd.DataFrame(negative_comments)
-
-
-    
     analyze_sentiment_and_extract_kpis(positive_df, negative_df)
     
 def main():
@@ -543,14 +540,12 @@ def main():
         
         layout="wide"
     )
-
+    
     st.title("Booking.com Reviews ")
     st.write("Enter a Booking.com hotel URL to extract positive and negative reviews.")
 
     url = st.text_input("Booking.com URL", placeholder="https://www.booking.com/hotel/...")
-    
-    debug_mode = st.checkbox("Enable Debug Mode", help="Shows more details about the extraction process")
-    
+    debug_mode = False
     if st.button("Extract Reviews", type="primary"):
         if not url:
             st.error("Please enter a valid Booking.com URL")
