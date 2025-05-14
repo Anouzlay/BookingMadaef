@@ -16,8 +16,6 @@ import streamlit as st
 import traceback
 def setup_driver():
     """Set up and return a Firefox webdriver with appropriate options."""
-    st.info("Attempting to set up Firefox driver...")
-
     firefox_options = FirefoxOptions()
     firefox_options.add_argument("--headless")
     firefox_options.add_argument("--no-sandbox")
@@ -26,13 +24,8 @@ def setup_driver():
     firefox_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/115.0")
 
     try:
-        st.info("Installing/checking Gecko driver with webdriver_manager...")
         service = Service(GeckoDriverManager().install())
-        st.info("Service created with GeckoDriverManager.")
-
         driver = webdriver.Firefox(service=service, options=firefox_options)
-        st.info("Firefox driver initialized.")
-
         return driver
     except Exception as e:
         st.error(f"Error setting up Firefox driver: {str(e)}")
@@ -58,11 +51,8 @@ def extract_reviews(url, debug_mode=False):
                     "//button[contains(@id, 'accept') or contains(text(), 'Accept') or contains(text(), 'Accepter')]"))
             )
             cookie_button.click()
-            st.info("Accepted cookies")
             time.sleep(2)
-        except TimeoutException:
-            st.info("No cookie banner found or already accepted")
-        
+        except TimeoutException:     
         # Check if we need to navigate to the reviews section
         if "reviews" not in driver.current_url.lower():
             # Create a reviews-specific URL to directly access the reviews page
@@ -76,7 +66,6 @@ def extract_reviews(url, debug_mode=False):
         # Take a screenshot for debugging
         if debug_mode:
             driver.save_screenshot("debug_screenshot.png")
-            st.info("Saved debug screenshot")
         
         # First attempt: Try to find review cards using data-testid attribute (most reliable)
         review_cards = driver.find_elements(By.CSS_SELECTOR, 'div[data-testid="review-card"], div[data-testid="review-item"]')
