@@ -52,7 +52,8 @@ def extract_reviews(url, debug_mode=False):
             )
             cookie_button.click()
             time.sleep(2)
-        except TimeoutException:     
+        except TimeoutException:    
+            pass
         # Check if we need to navigate to the reviews section
         if "reviews" not in driver.current_url.lower():
             # Create a reviews-specific URL to directly access the reviews page
