@@ -14,6 +14,7 @@ import re
 import streamlit as st
 import traceback
 
+open_ai_key = None
 def setup_driver():
     """Set up and return a Chrome webdriver with appropriate options."""
     chrome_options = Options()
@@ -458,7 +459,7 @@ def validate_booking_url(url):
         
     return True
 
-def create_sentiment_dataframes(reviews):
+def create_sentiment_dataframes(reviews , open_ai_key):
     """Create separate dataframes for positive and negative comments."""
     positive_comments = []
     negative_comments = []
@@ -532,7 +533,7 @@ def create_sentiment_dataframes(reviews):
     
     positive_df = pd.DataFrame(positive_comments)
     negative_df = pd.DataFrame(negative_comments)
-    analyze_sentiment_and_extract_kpis(positive_df, negative_df)
+    analyze_sentiment_and_extract_kpis(positive_df, negative_df , open_ai_key)
     
 def main():
     st.set_page_config(
@@ -543,12 +544,14 @@ def main():
     
     st.title("Booking.com Reviews ")
     st.write("Enter a Booking.com hotel URL to extract positive and negative reviews.")
-
     url = st.text_input("Booking.com URL", placeholder="https://www.booking.com/hotel/...")
+    open_ai_key=st.text_input("Enter OpenAI keys api",type="password" , placeholder="API KEY")
     debug_mode = False
     if st.button("Extract Reviews", type="primary"):
         if not url:
             st.error("Please enter a valid Booking.com URL")
+        if not open_ai_key:
+            st.error("Please enter a valid OpenAI keys api")
         elif not validate_booking_url(url):
             st.error("The URL doesn't appear to be a valid Booking.com hotel URL")
         else:
@@ -576,7 +579,7 @@ def main():
                 
             if reviews:
                 # Create separate dataframes for positive and negative comments
-                 create_sentiment_dataframes(reviews)
+                 create_sentiment_dataframes(reviews , open_ai_key)
            
             else:
                 st.error("No reviews found or error occurred during extraction")
